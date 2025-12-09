@@ -20,6 +20,11 @@ function toBytes(str) {
   return new TextEncoder().encode(str);
 }
 
+export async function decryptString(str, key, iv) {
+  const decrypted = await decryptAESCBC(str, key, iv);
+  return decrypted;
+}
+
 export async function encryptString(str, key, iv) {
   const encrypted = await encryptAESCBC(str, key, iv);
   return encrypted;
@@ -102,4 +107,23 @@ function encryptAESCBC(plaintext, keyHex, ivHex) {
 
   // Return hex ciphertext
   return aesjs.utils.hex.fromBytes(encryptedBytes);
+}
+
+export function decryptAESCBC(cipherHex, keyHex, ivHex) {
+  console.log("cipherHex:", cipherHex);
+  console.log("keyHex:", keyHex);
+  console.log("ivHex :", ivHex);
+  // Convert hex → byte arrays
+  const keyBytes = aesjs.utils.hex.toBytes(keyHex); // 32 bytes
+  const ivBytes = aesjs.utils.hex.toBytes(ivHex); // 16 bytes
+  const cipherBytes = aesjs.utils.hex.toBytes(cipherHex);
+  // AES-CBC decrypt
+  const aesCbc = new aesjs.ModeOfOperation.cbc(keyBytes, ivBytes);
+  const decryptedPadded = aesCbc.decrypt(cipherBytes);
+
+  // Remove PKCS7 padding
+  const decryptedBytes = aesjs.padding.pkcs7.strip(decryptedPadded);
+
+  // Convert bytes → UTF-8 string
+  return aesjs.utils.utf8.fromBytes(decryptedBytes);
 }
