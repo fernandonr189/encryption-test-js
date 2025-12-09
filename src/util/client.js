@@ -33,3 +33,21 @@ export async function sendEncrypted(data, pubkey) {
 
   return responseData;
 }
+
+export async function getSeed(pubkey) {
+  let response = await fetch("http://localhost:8080/seed", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ pubkey: pubkey }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const json = await response.json();
+
+  return json.seed;
+}

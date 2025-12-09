@@ -3,25 +3,6 @@ import JSEncrypt from "jsencrypt";
 import hkdf from "js-crypto-hkdf";
 import aesjs from "aes-js";
 
-async function getSeed(pubkey) {
-  let response = await fetch("http://localhost:8080/seed", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ pubkey: pubkey }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  const json = await response.json();
-
-  return json.seed;
-}
-
-// base64 -> Uint8Array
 function base64ToBytes(b64) {
   const bin = atob(b64);
   const u8 = new Uint8Array(bin.length);
@@ -29,7 +10,6 @@ function base64ToBytes(b64) {
   return u8;
 }
 
-// hex helper (optional, for logging)
 function toHex(u8) {
   return Array.from(u8)
     .map((b) => b.toString(16).padStart(2, "0"))
@@ -45,17 +25,8 @@ export async function encryptString(str, key, iv) {
   return encrypted;
 }
 
-export async function generateKey() {
-  let crypt = new JSEncrypt({ default_key_size: 2048 });
-  const privateKey = crypt.getPrivateKey();
-  const publicKey = crypt.getPublicKey();
-  const seed = await getSeed(publicKey);
-  crypt.setPrivateKey(privateKey);
-  const decrypted = crypt.decrypt(seed);
-  console.log("Decrypted Seed:", decrypted);
-
-  const { key, iv, salt } = await deriveKeyAndIvFromSeed(decrypted);
-
+export async function generateKey(seed) {
+  const { key, iv, salt } = await deriveKeyAndIvFromSeed(seed);
   return { key: toHex(key), iv: toHex(iv), salt: toHex(salt) };
 }
 
