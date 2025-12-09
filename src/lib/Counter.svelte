@@ -1,7 +1,7 @@
 <script>
     import { onMount } from "svelte";
     import { getPubKey, sendEncrypted } from "../util/client";
-    import { generateKey } from "../util/aes";
+    import { encryptString, generateKey } from "../util/aes";
 
     let count = $state(0);
     let pubkey = $state("");
@@ -13,7 +13,13 @@
         pubkey = await getPubKey();
         await sendEncrypted("Hello, World!", pubkey);
 
-        generateKey();
+        const { key, iv, salt } = await generateKey();
+        console.log("key hex:", key);
+        console.log("iv  hex:", iv);
+        console.log("salt hex:", salt);
+
+        const encrypted = await encryptString("Hello, World!", key, iv);
+        console.log("encrypted hex:", encrypted);
     });
 </script>
 

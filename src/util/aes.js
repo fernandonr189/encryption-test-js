@@ -1,6 +1,8 @@
 // @ts-nocheck
 import JSEncrypt from "jsencrypt";
 import hkdf from "js-crypto-hkdf";
+import aesjs from "aes-js";
+
 async function getSeed(pubkey) {
   let response = await fetch("http://localhost:8080/seed", {
     method: "POST",
@@ -38,6 +40,11 @@ function toBytes(str) {
   return new TextEncoder().encode(str);
 }
 
+export async function encryptString(str, key, iv) {
+  const encrypted = await encryptAESCBC(str, key, iv);
+  return encrypted;
+}
+
 export async function generateKey() {
   let crypt = new JSEncrypt({ default_key_size: 2048 });
   const privateKey = crypt.getPrivateKey();
@@ -48,9 +55,8 @@ export async function generateKey() {
   console.log("Decrypted Seed:", decrypted);
 
   const { key, iv, salt } = await deriveKeyAndIvFromSeed(decrypted);
-  console.log("key hex:", toHex(key));
-  console.log("iv  hex:", toHex(iv));
-  console.log("salt hex:", toHex(salt));
+
+  return { key: toHex(key), iv: toHex(iv), salt: toHex(salt) };
 }
 
 /**
@@ -109,4 +115,20 @@ export async function deriveKeyAndIvFromSeed(
   const iv = okm.slice(32, 48); // 16-byte IV
 
   return { key, iv, salt: hkdfResponse.salt };
+}
+
+function encryptAESCBC(plaintext, keyHex, ivHex) {
+  const keyBytes = aesjs.utils.hex.toBytes(keyHex); // 32 bytes
+  const ivBytes = aesjs.utils.hex.toBytes(ivHex); // 16 bytes
+
+  const textBytes = aesjs.utils.utf8.toBytes(plaintext);
+
+  // PKCS7 padding
+  const padded = aesjs.padding.pkcs7.pad(textBytes);
+
+  const aesCbc = new aesjs.ModeOfOperation.cbc(keyBytes, ivBytes);
+  const encryptedBytes = aesCbc.encrypt(padded);
+
+  // Return hex ciphertext
+  return aesjs.utils.hex.fromBytes(encryptedBytes);
 }
